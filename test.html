@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notes PopUp</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .open-popup-btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #f9e66c;
+      color: #8f7b00;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 20px;
+    }
+    .popup {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 300px;
+      background-color: #fff;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      z-index: 1000;
+      resize: both;
+      overflow: auto;
+    }
+    .popup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background-color: #007bff;
+      color: #fff;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+      cursor: grab;
+    }
+    .popup-header .close-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .popup-body {
+      padding: 15px;
+    }
+    .popup textarea {
+      width: 95%;
+      height: 100px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      resize: none;
+    }
+    .popup button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<button class="open-popup-btn" onclick="openPopup()">Notes</button>
+<div class="popup" id="popup">
+  <div class="popup-header" id="popup-header">
+    <span>Grab note</span>
+    <button class="close-btn" onclick="closePopup()">X</button>
+  </div>
+  <div class="popup-body">
+    <textarea id="noteTextarea" placeholder="Type something..."></textarea>
+    <button onclick="copyAndPaste()">Copy</button>
+  </div>
+</div>
+<script>
+  const popup = document.getElementById('popup');
+  const popupHeader = document.getElementById('popup-header');
+  const textarea = document.getElementById('noteTextarea');
+
+  // Restaurar la posición desde localStorage al cargar la página
+  const savedPosition = localStorage.getItem('popupPosition');
+  if (savedPosition) {
+    const { top, left } = JSON.parse(savedPosition);
+    popup.style.top = `${top}px`;
+    popup.style.left = `${left}px`;
+    popup.style.transform = 'none'; // Para evitar que se recoloque al centro
+  }
+
+  function openPopup() {
+    popup.style.display = 'block';
+    if (!savedPosition) {
+      popup.style.top = '50%';
+      popup.style.left = '50%';
+      popup.style.transform = 'translate(-50%, -50%)';
+    }
+  }
+
+  function closePopup() {
+    popup.style.display = 'none';
+  }
+
+  function copyAndPaste() {
+    const text = textarea.value;
+    if (text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Text copied to clipboard!");
+      }).catch(err => {
+        console.error("Failed to copy text:", err);
+      });
+    } else {
+      navigator.clipboard.readText().then(clipText => {
+        textarea.value = clipText;
+      }).catch(err => {
+        console.error("Failed to read clipboard:", err);
+      });
+    }
+  }
+
+  let isDragging = false;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  popupHeader.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.close-btn')) return;
+
+    isDragging = true;
+    offsetX = e.clientX - popup.getBoundingClientRect().left;
+    offsetY = e.clientY - popup.getBoundingClientRect().top;
+
+    popupHeader.setPointerCapture(e.pointerId);
+  });
+
+  popupHeader.addEventListener('pointermove', (e) => {
+    if (isDragging) {
+      const top = e.clientY - offsetY;
+      const left = e.clientX - offsetX;
+
+      popup.style.left = `${left}px`;
+      popup.style.top = `${top}px`;
+      popup.style.transform = 'none';
+
+      // Guardar la posición en localStorage
+      localStorage.setItem('popupPosition', JSON.stringify({ top, left }));
+    }
+  });
+
+  popupHeader.addEventListener('pointerup', (e) => {
+    isDragging = false;
+    popupHeader.releasePointerCapture(e.pointerId);
+  });
+
+  popupHeader.addEventListener('pointercancel', () => {
+    isDragging = false;
+  });
+</script>
+</body>
+</html>
